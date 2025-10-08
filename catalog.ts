@@ -1,0 +1,12 @@
+
+export const CATALOG = [
+  { id:'toys-01', name:'Feather Teaser Wand', desc:'Springy wand with natural feathers — vet-approved fun.', price:29.9, tag:'Toys', rating:4.8, best:true },
+  { id:'toys-02', name:'Crinkle Tunnel', desc:'Collapsible tunnel for zoomies and hide & seek.', price:49.0, tag:'Toys', rating:4.6 },
+  { id:'care-01', name:'Grooming Slicker Brush', desc:'Gentle detangler for silky coats, less shedding.', price:35.0, tag:'Care', rating:4.7 },
+  { id:'care-02', name:'Natural Catnip Spray', desc:'100% organic catnip extract — instant playtime.', price:22.5, tag:'Care', rating:4.5 },
+  { id:'eat-01', name:'Freeze‑Dried Salmon Bites', desc:'Single-ingredient, high-protein treats.', price:32.0, tag:'Treats', rating:4.9, best:true },
+  { id:'home-01', name:'Cloud Napper Bed', desc:'Ultra-plush donut bed for stress-free snoozes.', price:119.0, tag:'Home', rating:4.8 },
+  { id:'home-02', name:'Modern Scratch Post', desc:'Sturdy sisal post with bamboo base.', price:99.0, tag:'Home', rating:4.6 },
+  { id:'eat-02', name:'Ceramic Double Bowl', desc:'Weighted bowls for food + water; dishwasher-safe.', price:89.0, tag:'Home', rating:4.7 },
+];
+export const TAGS = ['All','Toys','Treats','Care','Home'] as const;
