@@ -1,0 +1,305 @@
+
+import type { AppProps } from 'next/app';
+import '@/styles/globals.css';
+export default function App({ Component, pageProps }: AppProps){
+  return <Component {...pageProps} />;
+}
+
+import React, { useMemo, useState } from 'react';
+import { ShoppingCart, Cat, Box, Star, Check, X, ChevronDown, ChevronRight } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Input from '@/components/ui/Input';
+import Switch from '@/components/ui/Switch';
+import IconBox from '@/components/IconBox';
+import { CATALOG, TAGS } from '@/lib/catalog';
+import { CartItem, money } from '@/lib/cart';
+
+export default function Home(){
+  const BRAND = 'Cheshire';
+  const [openCart, setOpenCart] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<(typeof TAGS)[number]>('All');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [annual, setAnnual] = useState(false);
+  const [subSize, setSubSize] = useState<'Mini'|'Classic'|'Mega'>('Classic');
+  const [subTheme, setSubTheme] = useState<'Play'|'Treats'|'Mixed'>('Mixed');
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  const filtered = useMemo(()=>{
+    return CATALOG.filter(p => (activeTag==='All'? true : p.tag===activeTag))
+      .filter(p => `${p.name} ${p.desc}`.toLowerCase().includes(query.toLowerCase()));
+  }, [query, activeTag]);
+
+  const add = (item: CartItem) => {
+    setCart(c => {
+      const i = c.findIndex(x => x.id===item.id && x.variant===item.variant);
+      if(i>=0){ const copy=[...c]; copy[i] = { ...copy[i], qty: copy[i].qty + item.qty }; return copy; }
+      return [...c, item];
+    });
+    setOpenCart(true);
+  };
+  const remove = (idx:number) => setCart(c => c.filter((_,i)=>i!==idx));
+  const subTotal = useMemo(()=> cart.reduce((s,i)=> s + i.price*i.qty, 0), [cart]);
+  const shipping = subTotal>200 || subTotal===0 ? 0 : 12;
+  const total = subTotal + shipping;
+  const subPriceBase = useMemo(()=> ({Mini:59,Classic:99,Mega:159}[subSize]),[subSize]);
+  const subPrice = annual ? subPriceBase*0.9 : subPriceBase;
+
+  // Payment Links (set your URLs in .env.local)
+  const PAYLINK_ONEOFF = process.env.NEXT_PUBLIC_PAYMENT_LINK_ONEOFF || '#';
+  const PAYLINK_SUB_MONTHLY = process.env.NEXT_PUBLIC_PAYMENT_LINK_SUB_MONTHLY || '#';
+  const PAYLINK_SUB_ANNUAL = process.env.NEXT_PUBLIC_PAYMENT_LINK_SUB_ANNUAL || '#';
+
+  const openCheckout = () => {
+    // If cart contains a subscription, send to sub link; else to one-off link.
+    const hasSub = cart.some(i => i.id.startsWith('sub-'));
+    if(hasSub){
+      const annualPlan = cart.find(i => i.id.includes('annual'));
+      window.location.href = annualPlan ? PAYLINK_SUB_ANNUAL : PAYLINK_SUB_MONTHLY;
+    } else {
+      window.location.href = PAYLINK_ONEOFF;
+    }
+  };
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 backdrop-blur bg-white/70 border-b">
+        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center gap-3">
+          <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 shadow-sm">
+            <Cat className="h-5 w-5 text-white"/>
+          </div>
+          <span className="font-extrabold text-xl tracking-tight">{BRAND}</span>
+          <Badge className="ml-2 bg-sky-100 text-sky-700 border-sky-200">Malaysia</Badge>
+
+          <div className="ml-auto hidden md:flex items-center gap-2">
+            {TAGS.map(t => (
+              <Button key={t} variant={activeTag===t? 'default':'ghost'} onClick={()=>setActiveTag(t)} className={activeTag===t? 'bg-sky-600 hover:bg-sky-700':'hover:bg-sky-100'}>{t}</Button>
+            ))}
+          </div>
+
+          <div className="ml-2 flex-1 max-w-sm">
+            <Input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search toys, treats…" />
+          </div>
+
+          <Button className="ml-2 bg-sky-600 hover:bg-sky-700" onClick={()=>setOpenCart(!openCart)}>
+            <ShoppingCart className="mr-2 h-4 w-4"/> Cart ({cart.reduce((n,i)=>n+i.qty,0)})
+          </Button>
+        </div>
+      </header>
+
+      <section className="relative">
+        <div className="mx-auto max-w-6xl px-4 py-10 md:py-16 grid md:grid-cols-2 gap-8 items-center">
+          <div>
+            <Badge className="bg-sky-100 text-sky-700 border-sky-200">Bright • Fun • Blue hues</Badge>
+            <h1 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-tight text-slate-900">
+              All your cat goodies & gifts in one place — plus a curated <span className="text-sky-700">subscription box</span>.
+            </h1>
+            <p className="mt-3 text-slate-600 max-w-prose">Build a purr‑fect routine with toys, treats, care and home essentials. Subscribe to get hand‑picked items delivered monthly — pause or cancel anytime.</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a href="#subscribe"><Button className="bg-sky-600 hover:bg-sky-700">Build your box</Button></a>
+              <a href="#catalog"><Button variant="outline" className="border-sky-200">Browse products</Button></a>
+            </div>
+            <div className="mt-6 flex items-center gap-4 text-slate-600">
+              <div className="flex items-center gap-1"><Star className="h-4 w-4 text-amber-500" /><span className="text-sm">Loved by 5,000+ cat parents</span></div>
+              <div className="flex items-center gap-1"><Check className="h-4 w-4 text-emerald-600" /><span className="text-sm">Free shipping over RM200</span></div>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="aspect-[4/3] w-full rounded-3xl bg-gradient-to-br from-sky-200 via-blue-200 to-white p-1 shadow-lg">
+              <div className="h-full w-full rounded-3xl bg-white/50 grid place-items-center">
+                <div className="text-center p-8">
+                  <Cat className="mx-auto h-16 w-16 text-sky-700" />
+                  <p className="mt-3 font-semibold text-slate-800">Blue‑hued, fun aesthetic</p>
+                  <p className="text-sm text-slate-600">Optimized for mobile • Fast • Accessible</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="subscribe" className="border-t bg-white/70">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <div className="flex items-center gap-2 mb-4"><Box className="h-5 w-5 text-sky-700" /><h2 className="text-2xl font-bold">Subscription Box</h2></div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="md:col-span-2">
+              <CardHeader><CardTitle>Build your plan</CardTitle></CardHeader>
+              <CardContent className="space-y-5">
+                <div>
+                  <p className="text-slate-700 text-sm font-medium">Box size</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {['Mini','Classic','Mega'].map(s => (
+                      <Button key={s} variant={subSize===s? 'default':'outline'} className={subSize===s? 'bg-sky-600 hover:bg-sky-700':'border-sky-200'} onClick={()=>setSubSize(s as any)}>{s}</Button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">Mini: 3 items • Classic: 5 items • Mega: 8 items</p>
+                </div>
+
+                <div>
+                  <p className="text-slate-700 text-sm font-medium">Theme</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {['Play','Treats','Mixed'].map(t => (
+                      <Button key={t} variant={subTheme===t? 'default':'outline'} className={subTheme===t? 'bg-sky-600 hover:bg-sky-700':'border-sky-200'} onClick={()=>setSubTheme(t as any)}>{t}</Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border p-3 bg-slate-50">
+                  <div>
+                    <p className="font-medium">Billing</p>
+                    <p className="text-sm text-slate-500">Save 10% with annual billing</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={!annual? 'font-semibold':'text-slate-500'}>Monthly</span>
+                    <Switch checked={annual} onChange={setAnnual}/>
+                    <span className={annual? 'font-semibold':'text-slate-500'}>Annual</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-slate-600">Your plan</p>
+                    <p className="text-lg font-bold">{subSize} • {subTheme} • {annual ? 'Billed yearly' : 'Billed monthly'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-slate-600">Price</p>
+                    <p className="text-2xl font-extrabold text-sky-700">{money(subPrice)}</p>
+                    <p className="text-xs text-slate-500">{annual ? 'per month, paid annually' : 'per month'}</p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="justify-between">
+                <div className="text-sm text-slate-600">Pause or cancel anytime • Free returns on first box</div>
+                <Button className="bg-sky-600 hover:bg-sky-700" onClick={()=>add({ id: `sub-${subSize}-${subTheme}-${annual ? 'annual':'monthly'}`, name: `Cheshire Subscription — ${subSize} / ${subTheme} ${annual ? '(Annual)':'(Monthly)'}`, qty:1, price: subPrice, variant: annual? 'Annual':'Monthly' })}>Add subscription</Button>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>What’s inside?</CardTitle></CardHeader>
+              <CardContent className="space-y-3 text-sm text-slate-600">
+                <div className="flex items-start gap-2"><Check className="h-4 w-4 mt-0.5 text-emerald-600" /> Curated toys, treats & care items matched to your theme</div>
+                <div className="flex items-start gap-2"><Check className="h-4 w-4 mt-0.5 text-emerald-600" /> Personalized card with your cat’s name</div>
+                <div className="flex items-start gap-2"><Check className="h-4 w-4 mt-0.5 text-emerald-600" /> Surprise bonus in Mega boxes</div>
+                <div className="flex items-start gap-2"><Check className="h-4 w-4 mt-0.5 text-emerald-600" /> Skip any month in one click</div>
+                <div className="flex items-start gap-2"><Check className="h-4 w-4 mt-0.5 text-emerald-600" /> Local shipping from KL • Free over RM200</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      <section id="catalog" className="border-t">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Shop products</h2>
+            <div className="flex gap-2 md:hidden">
+              {TAGS.map(t => (
+                <Button key={t} size='sm' variant={activeTag===t? 'default':'outline'} className={activeTag===t? 'bg-sky-600 hover:bg-sky-700':'border-sky-200'} onClick={()=>setActiveTag(t)}>{t}</Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map(p => (
+              <Card key={p.id} className="overflow-hidden group">
+                <div className="relative aspect-[4/3] bg-gradient-to-br from-sky-100 to-blue-100 grid place-items-center">
+                  <IconBox/>
+                  {p.best && (<Badge className="absolute top-3 left-3 bg-amber-100 text-amber-700 border-amber-200">Best seller</Badge>)}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1 text-slate-700 text-sm">
+                    <Star className="h-4 w-4 text-amber-500"/> {p.rating}
+                  </div>
+                </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg leading-tight">{p.name}</CardTitle>
+                  <p className="text-sm text-slate-600">{p.desc}</p>
+                </CardHeader>
+                <CardFooter className="flex items-center justify-between">
+                  <div className="font-semibold">{money(p.price)}</div>
+                  <Button className="bg-sky-600 hover:bg-sky-700" onClick={()=>add({ id:p.id, name:p.name, price:p.price, qty:1 })}>Add to cart</Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t bg-gradient-to-b from-white to-sky-50">
+        <div className="mx-auto max-w-6xl px-4 py-10">
+          <h2 className="text-2xl font-bold mb-4">FAQ</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <FAQ q="Can I pause or cancel my subscription?" a="Yes — manage anytime from your account. You can skip a month, pause, or cancel with one click."/>
+            <FAQ q="Do you ship across Malaysia?" a="Yes! We ship nationwide from Kuala Lumpur. Orders over RM200 ship free."/>
+            <FAQ q="What’s in each box?" a="A mix of toys, treats, and care items tailored to your selected theme and size."/>
+            <FAQ q="How do I pay?" a="Connect Stripe, PayPal, or iPay88 to accept cards, FPX, and e‑wallets when you deploy."/>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t bg-white/70">
+        <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col md:flex-row gap-4 md:items-center justify-between">
+          <div className="text-slate-600 text-sm">© {new Date().getFullYear()} {BRAND}. All rights reserved.</div>
+          <div className="flex flex-wrap gap-2 text-sm text-slate-600">
+            <a href="#" className="hover:underline">Privacy</a>
+            <a href="#" className="hover:underline">Terms</a>
+            <a href="#" className="hover:underline">Refunds</a>
+            <a href="#" className="hover:underline">Contact</a>
+          </div>
+        </div>
+      </footer>
+
+      {/* Cart Drawer */}
+      {openCart && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/30" onClick={()=>setOpenCart(false)}></div>
+          <div className="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-white shadow-xl flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <h3 className="font-semibold">Your cart</h3>
+              <button onClick={()=>setOpenCart(false)} className="p-2 rounded-xl hover:bg-slate-100"><X className="h-4 w-4"/></button>
+            </div>
+            <div className="p-4 space-y-4 flex-1 overflow-auto">
+              {cart.length===0 && <p className="text-sm text-slate-500">Your cart is empty.</p>}
+              {cart.map((i,idx)=>(
+                <div key={`${i.id}-${idx}`} className="flex items-start gap-3 border rounded-xl p-3">
+                  <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-sky-100 to-blue-100 grid place-items-center">
+                    <Box className="h-6 w-6 text-sky-700"/>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium leading-tight">{i.name}</p>
+                        {i.variant && <p className="text-xs text-slate-500">{i.variant}</p>}
+                        <p className="text-sm mt-1">{money(i.price)} <span className="text-slate-500">× {i.qty}</span></p>
+                      </div>
+                      <button onClick={()=>remove(idx)} className="p-2 rounded-xl hover:bg-slate-100"><X className="h-4 w-4"/></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t space-y-2">
+              <div className="flex justify-between text-sm"><span>Subtotal</span><span>{money(subTotal)}</span></div>
+              <div className="flex justify-between text-sm"><span>Shipping</span><span>{shipping===0 ? 'FREE' : money(shipping)}</span></div>
+              <div className="border-t pt-2 flex justify-between font-semibold"><span>Total</span><span>{money(total)}</span></div>
+              <Button className="w-full bg-sky-600 hover:bg-sky-700" onClick={openCheckout}>Checkout</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FAQ({ q, a }:{q:string; a:string}){
+  const [open,setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl border bg-white/70 p-4">
+      <button className="w-full flex items-center justify-between" onClick={()=>setOpen(v=>!v)}>
+        <span className="font-semibold text-left pr-6">{q}</span>
+        {open ? <ChevronDown className="h-4 w-4"/> : <ChevronRight className="h-4 w-4"/>}
+      </button>
+      {open && <p className="mt-2 text-sm text-slate-600">{a}</p>}
+    </div>
+  );
+}
